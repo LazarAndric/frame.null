@@ -1,0 +1,40 @@
+#pragma kernel CSMain
+
+struct Point
+{
+    float3 position;
+    float3 origin;
+    float pulse;
+};
+
+RWStructuredBuffer<Point> _Points;
+float _Time;
+float _MoveSpeed;
+float _MoveRadius;
+
+[numthreads(64, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    uint totalPoints;
+    uint stride;
+    _Points.GetDimensions(totalPoints, stride);
+    
+    if (index >= totalPoints)
+        return; // Ovo sprecava upisivanje van buffera
+
+    Point p = _Points[index];
+    
+    // Perlin-style pomeranje koristeci sin/cos
+    float3 offset;
+    offset.x = sin(_Time * _MoveSpeed + p.origin.x * 0.5) * _MoveRadius;
+    offset.y = cos(_Time * _MoveSpeed + p.origin.y * 0.5) * _MoveRadius;
+    offset.z = sin(_Time * _MoveSpeed * 0.7 + p.origin.z * 0.5) * _MoveRadius;
+    
+    p.position = p.origin + offset;
+    
+    // Pulsiranje koje zavisi od vremena i ID-a tacke
+    p.pulse = sin(_Time * 3.0 + index * 0.1) * 0.5 + 0.5;
+    
+    _Points[index] = p;
+}
